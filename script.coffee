@@ -121,30 +121,45 @@ class Storage
 
 
 class EntryListFormatter
+  @aggregator: {}
+
   @format: (entries) ->
+    @aggregator = {}
     out = ''
     for entry, idx in entries
       entry_next = if idx >= entries.length - 1 then null else entries[idx + 1]
       if entry.type == Entry.TYPE_NORMAL
         out = out + @formatSimpleHTML(entry, entry_next)
-
       if entry.type == Entry.TYPE_END
         out = out + @formatEnd()
-    '<table><thead><th>Name</th><th>From</th><th>To</th><th>Interval</th></thead>' + out + '</table>'
+    out = '<table><thead><th>Name</th><th>From</th><th>To</th><th>Interval</th></thead>' + out + '</table>'
+    out = out + (@formatAggregation @aggregator)
 
   @formatSimpleHTML: (item, item_next) ->
     time_from = (new Date(item.time)).toLocaleTimeString()
     date_to = if item_next then new Date(item_next.time) else new Date()
     time_to = date_to.toLocaleTimeString()
-    interval_seconds = date_to.getTime() - item.time
-    interval_hours = Math.floor(interval_seconds / 3600000)
-    interval_minutes = Math.floor((interval_seconds % 3600000) / 60000)
-    interval_seconds_only = Math.floor((interval_seconds % 60000) / 1000)
-    interval_text = interval_hours + 'h ' + interval_minutes + 'm ' + interval_seconds_only + 's'
-    '<tr><td>' + [decodeURIComponent(item.name), time_from, time_to, interval_text].join('</td><td>') + '</td></tr>'
+    interval_microseconds = date_to.getTime() - item.time
+    interval_text = @formatTime(interval_microseconds)
+    name = decodeURIComponent(item.name)
+    @aggregator[name] = 0 if !@aggregator.hasOwnProperty(name)
+    @aggregator[name] += interval_microseconds
+    '<tr><td>' + [name, time_from, time_to, interval_text].join('</td><td>') + '</td></tr>'
 
   @formatEnd: () ->
     '<tr><td colspan="4" class="end"></td></tr>'
+
+  @formatTime: (microseconds) ->
+    interval_hours = Math.floor(microseconds / 3600000)
+    interval_minutes = Math.floor((microseconds % 3600000) / 60000)
+    interval_microseconds_only = Math.floor((microseconds % 60000) / 1000)
+    interval_hours + 'h ' + interval_minutes + 'm ' + interval_microseconds_only + 's'
+
+  @formatAggregation: (aggregation) ->
+    out = ''
+    for name, time of aggregation
+      out = out + '<li>' + name + ': ' + (@formatTime time) + '</li>'
+    '<ul>' + out + '</ul>'
 
 
 class Render
@@ -152,3 +167,4 @@ class Render
     entries = Recorder.getInstance().entries
     out = EntryListFormatter.format(entries)
     jQuery('#report').html out
+    jQuery('li').click -> jQuery(this).css 'text-decoration', 'line-through'
