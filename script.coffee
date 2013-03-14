@@ -17,6 +17,8 @@ class RequestUtil
   @execute: ->
     Controller[@queryParams.action]() if @queryParams.hasOwnProperty('action') && Controller.hasOwnProperty(@queryParams.action)
 
+  @reloadBasePath: ->
+    window.location.href = window.location.origin + window.location.pathname
 
 class Controller
   ###
@@ -26,12 +28,14 @@ class Controller
   ###
   @save: ->
     Recorder.getInstance().addEntry RequestUtil.queryParams.name
+    RequestUtil.reloadBasePath()
 
   ###
   Finishing a daily session.
   ###
   @end: ->
-    Recorder.getInstance().end()
+    Recorder.getInstance().endSession()
+    RequestUtil.reloadBasePath()
 
   ###
   Resetting the session queue.
@@ -106,16 +110,28 @@ class Storage
 class EntryListFormatter
   @format: (entries) ->
     out = ''
-    for entry in entries
+    for entry, idx in entries
+      entry_next = if idx >= entries.length - 1 then null else entries[idx + 1]
       if entry.type == Entry.TYPE_NORMAL
-        out = out + @formatSimpleHTML(entry)
+        out = out + @formatSimpleHTML(entry, entry_next)
 
       if entry.type == Entry.TYPE_END
-        null
-        # @todo to be continued
+        out = out + @formatEnd()
+    '<table><thead><th>Name</th><th>From</th><th>To</th><th>Interval</th></thead>' + out + '</table>'
 
-  @formatSimpleHTML: (item) ->
-    '<div>' + item.name + '</div>'
+  @formatSimpleHTML: (item, item_next) ->
+    time_from = (new Date(item.time)).toLocaleTimeString()
+    date_to = if item_next then new Date(item_next.time) else new Date()
+    time_to = date_to.toLocaleTimeString()
+    interval_seconds = date_to.getTime() - item.time
+    interval_hours = Math.floor(interval_seconds / 3600000)
+    interval_minutes = Math.floor((interval_seconds % 3600000) / 60000)
+    interval_seconds_only = Math.floor((interval_seconds % 60000) / 1000)
+    interval_text = interval_hours + 'h ' + interval_minutes + 'm ' + interval_seconds_only + 's'
+    '<tr><td>' + [decodeURIComponent(item.name), time_from, time_to, interval_text].join('</td><td>') + '</td></tr>'
+
+  @formatEnd: () ->
+    '<tr><td colspan="4" class="end"></td></tr>'
 
 
 class Render
