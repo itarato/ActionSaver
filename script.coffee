@@ -4,6 +4,7 @@ jQuery ->
   RequestUtil.execute()
   Render.refreshUI()
 
+
 class RequestUtil
   @queryParams: {}
 
@@ -19,6 +20,7 @@ class RequestUtil
 
   @reloadBasePath: ->
     window.location.href = window.location.origin + window.location.pathname
+
 
 class Controller
   ###
@@ -42,6 +44,13 @@ class Controller
   ###
   @reset: ->
     Recorder.getInstance().reset()
+
+  ###
+  Remove last event - if it was an accident.
+  ###
+  @removelast: ->
+    Recorder.getInstance().removeLast()
+    RequestUtil.reloadBasePath()
 
 
 class Recorder
@@ -68,10 +77,14 @@ class Recorder
 
   reset: () ->
     @entries = []
-    Storage.delete('entry_records')
+    Storage.delete 'entry_records'
 
   entryList: () ->
     @entries
+
+  removeLast: () ->
+    @entries.pop()
+    Storage.set 'entry_records', @entries
 
   @getInstance: () ->
     @instance || new Recorder()
