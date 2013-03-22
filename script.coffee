@@ -52,6 +52,12 @@ class Controller
     Recorder.getInstance().removeLast()
     RequestUtil.reloadBasePath()
 
+  ###
+  Fix last entry's date.
+  ###
+  @fixlast: ->
+    Recorder.getInstance().fix RequestUtil.queryParams.minutes
+    RequestUtil.reloadBasePath()
 
 class Recorder
   entries: []
@@ -85,6 +91,13 @@ class Recorder
   removeLast: () ->
     @entries.pop()
     Storage.set 'entry_records', @entries
+
+  fix: (minutes) ->
+    last = @entries.pop()
+    last.time += parseInt(minutes) * 60000
+    @entries.push last
+    Storage.set 'entry_records', @entries
+
 
   @getInstance: () ->
     @instance || new Recorder()
