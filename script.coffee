@@ -1,10 +1,3 @@
-jQuery ->
-  Storage.init()
-  RequestUtil.init()
-  RequestUtil.execute()
-  Render.refreshUI()
-
-
 class RequestUtil
   @queryParams: {}
 
@@ -20,6 +13,9 @@ class RequestUtil
 
   @reloadBasePath: ->
     window.location.href = window.location.origin + window.location.pathname
+
+  @foo: ->
+    'Noo'
 
 
 class Controller
@@ -44,6 +40,7 @@ class Controller
   ###
   @reset: ->
     Recorder.getInstance().reset()
+    RequestUtil.reloadBasePath()
 
   ###
   Remove last event - if it was an accident.
@@ -68,7 +65,7 @@ class Recorder
 
   addEntry: (name) ->
     @entries.push {
-      name: name,
+      name: decodeURIComponent(name),
       time: (new Date()).getTime()
       type: Entry.TYPE_NORMAL
                   }
@@ -97,7 +94,6 @@ class Recorder
     last.time += parseInt(minutes) * 60000
     @entries.push last
     Storage.set 'entry_records', @entries
-
 
   @getInstance: () ->
     @instance || new Recorder()
@@ -181,3 +177,33 @@ class Render
     out = EntryListFormatter.format(entries)
     jQuery('#report').html out
     jQuery('li').click -> jQuery(this).css 'text-decoration', 'line-through'
+
+
+Storage.init()
+RequestUtil.init()
+
+app = angular.module 'reporter', []
+
+app.controller 'ReportController', ($scope) ->
+  console.log('angular')
+  $scope.entries = Recorder.getInstance().entryList()
+
+app.directive 'hourMinute', () ->
+  {
+    require: 'ngModel',
+    link: (scope, element, attr, ngModelCtrl) ->
+      ngModelCtrl.$formatters.unshift (val) ->
+        date = new Date(val)
+        date.getHours() + ':' + date.getMinutes()
+      ngModelCtrl.$parsers.push (val) ->
+        if /^\d{1,2}:\d{1,2}$/.test val
+          parts = val.split ':'
+          d = new Date()
+          d.setHours(parseInt(parts[0]))
+          d.setMinutes(parseInt(parts[1]))
+          d.getTime() / 1000
+  }
+
+jQuery ->
+  console.log('jQuery')
+  RequestUtil.execute()

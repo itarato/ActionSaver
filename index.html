@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="reporter">
 <head>
 
   <title>Action Saver</title>
@@ -8,6 +8,7 @@
   <link rel="stylesheet" type="text/css" href="style.css">
 
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.0.5/angular.min.js"></script>
   <script src="script.js"></script>
 
 </head>
@@ -17,7 +18,13 @@
 
 <hr/>
 
-<div id="report"></div>
+<div id="report" ng-controller="ReportController">
+  <ul>
+    <li ng-repeat="entry in entries">
+      <span><input type="text" ng-model="entry.time" hour-minute />: {{entry.name}}</span>
+    </li>
+  </ul>
+</div>
 
 <hr/>
 
